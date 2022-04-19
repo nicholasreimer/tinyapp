@@ -61,6 +61,14 @@ app.get("/urls", (req, res) => {
   res.render("urls_index", templateVars);
 });
 
+// -a route request that deletes a given shortURL that was previously created and
+//  refreshes the page via a redirect to show that it has been removed.
+app.post("/urls/:shortURL/delete", (req, res) => {
+  const shortURL = req.params.shortURL;
+  delete urlDatabase[shortURL];
+  res.redirect("/urls");
+});
+
 // -if a client makes a request at this specific path with there own value for (:shortURL)
 //  that value will be stored in a var called shortURL and be used in the template vars object
 //  so that it can rendered on our ejs file wherever it is called
