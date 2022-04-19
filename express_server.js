@@ -1,9 +1,14 @@
 //Express Server:
 
-//SETUP:
+//Express Server Setup:
 const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
+
+// MUST COME BEFORE ANY ROUTE REQUESTS
+//middleware that makes it possible for our form related get/post requests to work
+const bodyParser = require("body-parser");
+app.use(bodyParser.urlencoded({ extended: true }));
 
 //this code sets ejs as the template engine
 app.set("view engine", "ejs");
@@ -16,7 +21,13 @@ const urlDatabase = {
 };
 
 //------------------------------------------------------
-//these app.get requests connect us to corresponding ejs template files
+// -this GET route renders the urls_new.ejs template in the browser
+//  so that a form presents to the client.
+app.get("/urls/new", (req, res) => {
+  res.render("urls_new");
+});
+
+//a request at this path renders a page of all the urls stored currently in urlDatabase
 app.get("/urls", (req, res) => {
   const templateVars = { urls: urlDatabase };
   res.render("urls_index", templateVars);
@@ -24,7 +35,7 @@ app.get("/urls", (req, res) => {
 
 // -if a client makes a request at this specific path with there own value for (:shortURL)
 //  that value will be stored in a var called shortURL and be used in the template vars object
-//  so that it can rendered on our ejs file
+//  so that it can rendered on our ejs file wherever it is called
 app.get("/urls/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
 
@@ -36,19 +47,21 @@ app.get("/urls/:shortURL", (req, res) => {
 });
 
 //------------------------------------------------------
-// -Each of these app.gets are for client requests to specific paths
-// -the callback represents what they will get back as a response in the browser
+// CAN THE X3 app.gets below get DELETED?
+
+// -if client goes to / path they will be greeted with a Hello string
 app.get("/", (req, res) => {
   res.send("Hello!");
 });
 
-// -return the json value of object urlDatabase
+// -if a client goes to /urls.son they receive all the json info for the values stored in the
+//  urlDatabase object
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
 
-// -if a client creates a route to /hello path then return an html formatted string to the
-//  clients browser (via res.send)
+// -if a client creates a route to /hello path they will get a html formatted string in the
+//  there browser
 app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
