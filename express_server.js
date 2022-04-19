@@ -1,18 +1,9 @@
-//Express Server:
+//EXPRESS SERVER:
 
 //Express Server Setup:
 const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
-
-//----------------------------------------------------------------------------------------
-//GLOBAL FUNCTION: implement a function that returns a string of 6 random alphanumeric characters:
-function generateRandomString() {
-  return Math.random().toString(20).substr(2, 6);
-}
-//code source: https://dev.to/oyetoket/fastest-way-to-generate-random-strings-in-javascript-2k5a
-
-//----------------------------------------------------------------------------------------
 
 // MUST COME BEFORE ANY ROUTE REQUESTS
 //middleware that makes it possible for our form related get/post requests to work
@@ -30,6 +21,13 @@ const urlDatabase = {
 };
 
 //----------------------------------------------------------------------------------------
+//GLOBAL FUNCTION: implement a function that returns a string of 6 random alphanumeric characters:
+function generateRandomString() {
+  return Math.random().toString(20).substr(2, 6);
+}
+//code source: https://dev.to/oyetoket/fastest-way-to-generate-random-strings-in-javascript-2k5a
+
+//----------------------------------------------------------------------------------------
 //ROUTE REQUESTS:
 
 // -this GET route renders the urls_new.ejs template in the browser
@@ -40,8 +38,21 @@ app.get("/urls/new", (req, res) => {
 
 //related to forms
 app.post("/urls", (req, res) => {
-  console.log(req.body); // Log the POST request body to the console
-  res.send("Ok"); // Respond with 'Ok' (we will replace this)
+  // -assign a random string to a var called shortURL and add shortURL as a new key inside
+  //  urlDatabase object with the user input for longurl as its key value.
+  let shortURL = generateRandomString();
+  urlDatabase[shortURL] = req.body.longURL;
+  console.log("current urlDatabase: ", urlDatabase);
+
+  res.redirect(`/urls/${shortURL}`); //redirect the client to the shortUrl page specific to there new shortURL
+});
+
+// -if the client inputs ther newly generated shortURL they get redirected to the appropriate key value
+// stored inside the urlDatabase
+app.get("/u/:shortURL", (req, res) => {
+  const shortURL = req.params.shortURL;
+  const longURL = urlDatabase[shortURL];
+  res.redirect(longURL);
 });
 
 //a request at this path renders a page of all the urls stored currently in urlDatabase
@@ -63,26 +74,6 @@ app.get("/urls/:shortURL", (req, res) => {
   res.render("urls_show", templateVars);
 });
 
-//------------------------------------------------------
-// CAN THE X3 app.gets below get DELETED?
-
-// -if client goes to / path they will be greeted with a Hello string
-app.get("/", (req, res) => {
-  res.send("Hello!");
-});
-
-// -if a client goes to /urls.son they receive all the json info for the values stored in the
-//  urlDatabase object
-app.get("/urls.json", (req, res) => {
-  res.json(urlDatabase);
-});
-
-// -if a client creates a route to /hello path they will get a html formatted string in the
-//  there browser
-app.get("/hello", (req, res) => {
-  res.send("<html><body>Hello <b>World</b></body></html>\n");
-});
-
 //----------------------------------------------------------------------------------------
 //CLIENT REQUEST LISTENER:
 
@@ -94,3 +85,4 @@ app.get("/hello", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
+//----------------------------------------------------------------------------------------
