@@ -5,23 +5,38 @@ const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
 
-//set ejs as the template engine
+//this code sets ejs as the template engine
 app.set("view engine", "ejs");
 
 //----------------------------------------------------
+//this object stores our URL values
 const urlDatabase = {
   b2xVn2: "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com",
 };
+
 //------------------------------------------------------
-//this app.get connects us to our ejs template file (urls_index.ejs)
+//these app.get requests connect us to corresponding ejs template files
 app.get("/urls", (req, res) => {
   const templateVars = { urls: urlDatabase };
   res.render("urls_index", templateVars);
 });
 
+// -if a client makes a request at this specific path with there own value for (:shortURL)
+//  that value will be stored in a var called shortURL and be used in the template vars object
+//  so that it can rendered on our ejs file
+app.get("/urls/:shortURL", (req, res) => {
+  const shortURL = req.params.shortURL;
+
+  const templateVars = {
+    shortURL: shortURL,
+    longURL: urlDatabase[shortURL],
+  };
+  res.render("urls_show", templateVars);
+});
+
 //------------------------------------------------------
-// -Each of these app.gets represent what will happen if a client requests that specific path
+// -Each of these app.gets are for client requests to specific paths
 // -the callback represents what they will get back as a response in the browser
 app.get("/", (req, res) => {
   res.send("Hello!");
