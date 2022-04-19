@@ -69,12 +69,20 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   res.redirect("/urls");
 });
 
+// -a route request that changes the value of an exsisiting longURL by accesssing its
+//  shortURL key and refreshes the page via a redirect.
+app.post("/urls/:shortURL", (req, res) => {
+  const shortURL = req.params.shortURL;
+  urlDatabase[shortURL] = req.body.updatedURL;
+  console.log(req.body);
+  res.redirect("/urls");
+});
+
 // -if a client makes a request at this specific path with there own value for (:shortURL)
 //  that value will be stored in a var called shortURL and be used in the template vars object
 //  so that it can rendered on our ejs file wherever it is called
 app.get("/urls/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
-
   const templateVars = {
     shortURL: shortURL,
     longURL: urlDatabase[shortURL],
