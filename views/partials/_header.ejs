@@ -33,7 +33,7 @@
     </form>
     <% } else { %>
     <form class="card-title" method="POST" action="/logout">
-      <label for="username"> <%= username %> </label>
+      <label><%= username["email"] %></label>
       <button type="submit" class="btn btn-primary">Logout</button>
     </form>
     <% } %>
