@@ -13,10 +13,25 @@ app.use(cookieParser());
 app.set("view engine", "ejs");
 
 //-----------------------------------------------------------------------------------------
+//OBJECT LIBRARY:
+
 //this object stores our URL values
 const urlDatabase = {
   b2xVn2: "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com",
+};
+
+const users = {
+  userRandomID: {
+    id: "userRandomID",
+    email: "user@example.com",
+    password: "purple-monkey-dinosaur",
+  },
+  user2RandomID: {
+    id: "user2RandomID",
+    email: "user2@example.com",
+    password: "dishwasher-funk",
+  },
 };
 
 //----------------------------------------------------------------------------------------
@@ -29,14 +44,13 @@ function generateRandomString() {
 //----------------------------------------------------------------------------------------
 //ROUTE REQUESTS:
 
-// -this GET route renders the urls_new.ejs template in the browser
-//  so that a form presents to the client.
+// -GET route request renders the urls_new.ejs template in the browser
 app.get("/urls/new", (req, res) => {
   const templateVars = { username: req.cookies["username"] };
   res.render("urls_new", templateVars);
 });
 
-//related to forms
+//post route request gives clients a random string in place of ther inputed long url
 app.post("/urls", (req, res) => {
   // -assign a random string to a var called shortURL and add shortURL as a new key inside
   //  urlDatabase object with the user input for longurl as its key value.
@@ -54,14 +68,14 @@ app.get("/u/:shortURL", (req, res) => {
   res.redirect(longURL);
 });
 
-//a request at this path renders a page of all the urls stored currently in urlDatabase
+//get route request that renders a page of all the urls stored currently in urlDatabase
 app.get("/urls", (req, res) => {
   const templateVars = { urls: urlDatabase, username: req.cookies["username"] };
 
   res.render("urls_index", templateVars);
 });
 
-// -a route request that deletes a given shortURL that was previously created and
+// -post route request that let a client delete a given shortURL that was previously created and
 //  refreshes the page via a redirect to show that it has been removed.
 app.post("/urls/:shortURL/delete", (req, res) => {
   const shortURL = req.params.shortURL;
@@ -69,8 +83,8 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   res.redirect("/urls");
 });
 
-// -a route request that changes the value of an exsisiting longURL by accesssing its
-//  shortURL key and refreshes the page via a redirect.
+// -post route request that allows clients to change the value of an exsisiting longURL
+//  by accesssing its shortURL key and refreshes the page via a redirect.
 app.post("/urls/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
   urlDatabase[shortURL] = req.body.updatedURL;
@@ -92,17 +106,33 @@ app.get("/urls/:shortURL", (req, res) => {
   res.render("urls_show", templateVars);
 });
 
-// this route request makes it possible for users to create a username and connects a cookie to them
+//-------------------------------------------------------------------------------------------
+//CREATE A USERNAME, AND LOGOUT IN THE WEBSITE HEADER:
+
+// post route request makes it possible for users to create a username and connects a cookie to them
 app.post("/login", (req, res) => {
   res.cookie("username", req.body.username);
   res.redirect("/urls");
 });
 
-//post for logout
+//post route request that allows a use to logout, redirects them to the register page
 app.post("/logout", (req, res) => {
   res.clearCookie("username");
-  res.redirect("/urls");
+  res.redirect("/register");
 });
+
+//---------------------------------------------------------------------------------------------
+//get route request that allows users to create a username and password
+app.get("/register", (req, res) => {
+  const templateVars = {
+    username: req.cookies["username"],
+  };
+
+  res.render("register", templateVars);
+});
+
+// the POST endpoint for login
+app.post("/register", (req, res) => {});
 
 //----------------------------------------------------------------------------------------
 //CLIENT REQUEST LISTENER:
