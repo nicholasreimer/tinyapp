@@ -1,15 +1,14 @@
 //EXPRESS SERVER:
 
-//Express Server Setup:
+//Express Server Setup: (inculdes middleware: cookieparser, bodyparser)
 const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
-
-// MUST COME BEFORE ANY ROUTE REQUESTS
-//middleware that makes it possible for our form related get/post requests to work
+const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
-app.use(bodyParser.urlencoded({ extended: true }));
 
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cookieParser());
 //this code sets ejs as the template engine
 app.set("view engine", "ejs");
 
@@ -33,7 +32,8 @@ function generateRandomString() {
 // -this GET route renders the urls_new.ejs template in the browser
 //  so that a form presents to the client.
 app.get("/urls/new", (req, res) => {
-  res.render("urls_new");
+  const templateVars = { username: req.cookies["username"] };
+  res.render("urls_new", templateVars);
 });
 
 //related to forms
@@ -42,7 +42,6 @@ app.post("/urls", (req, res) => {
   //  urlDatabase object with the user input for longurl as its key value.
   let shortURL = generateRandomString();
   urlDatabase[shortURL] = req.body.longURL;
-  console.log("current urlDatabase: ", urlDatabase);
 
   res.redirect(`/urls/${shortURL}`); //redirect the client to the shortUrl page specific to there new shortURL
 });
@@ -57,7 +56,8 @@ app.get("/u/:shortURL", (req, res) => {
 
 //a request at this path renders a page of all the urls stored currently in urlDatabase
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase };
+  const templateVars = { urls: urlDatabase, username: req.cookies["username"] };
+
   res.render("urls_index", templateVars);
 });
 
@@ -74,7 +74,6 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 app.post("/urls/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
   urlDatabase[shortURL] = req.body.updatedURL;
-  console.log(req.body);
   res.redirect("/urls");
 });
 
@@ -83,11 +82,26 @@ app.post("/urls/:shortURL", (req, res) => {
 //  so that it can rendered on our ejs file wherever it is called
 app.get("/urls/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
+
   const templateVars = {
     shortURL: shortURL,
     longURL: urlDatabase[shortURL],
+    username: req.cookies["username"],
   };
+
   res.render("urls_show", templateVars);
+});
+
+// this route request makes it possible for users to create a username and connects a cookie to them
+app.post("/login", (req, res) => {
+  res.cookie("username", req.body.username);
+  res.redirect("/urls");
+});
+
+//post for logout
+app.post("/logout", (req, res) => {
+  res.clearCookie("username");
+  res.redirect("/urls");
 });
 
 //----------------------------------------------------------------------------------------
