@@ -21,11 +21,11 @@ app.set("view engine", "ejs");
 const urlDatabase = {
   b6UTxQ: {
     longURL: "https://www.tsn.ca",
-    userID: "aJ48lW",
+    userID: "userRandomID",
   },
   i3BoGr: {
     longURL: "https://www.google.ca",
-    userID: "aJ48lW",
+    userID: "userRandomID",
   },
 };
 
@@ -74,6 +74,18 @@ function userLookup(loginEmail, password) {
   return false;
 }
 
+//function which returns the URLs where the userID is equal to the id of the currently logged-in user.
+function urlsForUser(id) {
+  const output = {};
+
+  for (const shortURL in urlDatabase) {
+    if (urlDatabase[shortURL]["userID"] === id) {
+      output[shortURL] = urlDatabase[shortURL];
+    }
+  }
+  return output;
+}
+
 //---------------------------------------------------------------------------------------------------
 //SERVER ROUTE REQUESTS:
 
@@ -90,6 +102,7 @@ app.get("/urls/new", (req, res) => {
   }
 });
 
+//---------------------------------------------------------------------------------------------------
 //post route request gives clients a random string in place of ther inputed long url
 app.post("/urls", (req, res) => {
   if (!users[req.cookies["user_id"]]) {
@@ -106,6 +119,7 @@ app.post("/urls", (req, res) => {
   res.redirect(`/urls/${shortURL}`); //redirect the client to the shortUrl page specific to there new shortURL
 });
 
+//---------------------------------------------------------------------------------------------------
 // -if the client inputs ther newly generated shortURL they get redirected to the appropriate key value
 // stored inside the urlDatabase
 app.get("/u/:shortURL", (req, res) => {
@@ -118,26 +132,55 @@ app.get("/u/:shortURL", (req, res) => {
   res.redirect(longURL);
 });
 
-//get route request that renders a page of all the urls stored currently in urlDatabase
+//-----------------------------------------------------------------------------------------------------------------------
+//renders a page of all the urls stored currently in urlDatabase is certain conditions are met
 app.get("/urls", (req, res) => {
+  //if user is not logged in give them an error, do u exsist and do u hav an approprate cookie
+  if (!users[req.cookies["user_id"]]) {
+    return res
+      .status(401)
+      .send("You need to login or register to view this page");
+  }
+
+  //function returns an object containing urlDatabases corresponding object if userID is equal to
+  //the id of the currently logged-in user.
+  let output = urlsForUser(req.cookies["user_id"]);
+
   const templateVars = {
-    urls: urlDatabase,
+    urls: output,
     username: users[req.cookies["user_id"]],
   };
+
   res.render("urls_index", templateVars);
 });
+//-----------------------------------------------------------------------------------------------------------------------
 
 // -post route request that let a client delete a given shortURL that was previously created and
 //  refreshes the page via a redirect to show that it has been removed.
 app.post("/urls/:shortURL/delete", (req, res) => {
+  //***conditional asks if a given user should be able to DELETE this info
+  if (!users[req.cookies["user_id"]]) {
+    return res
+      .status(401)
+      .send("You need to login or register to view this page");
+  }
+
   const shortURL = req.params.shortURL;
   delete urlDatabase[shortURL];
   res.redirect("/urls");
 });
 
+//---------------------------------------------------------------------------------------------------
 // -post route request that allows clients to change the value of an exsisiting longURL
 //  by accesssing its shortURL key and refreshes the page via a redirect.
 app.post("/urls/:shortURL", (req, res) => {
+  //***conditional asks if a given user should be able to CHANGE this info
+  if (!users[req.cookies["user_id"]]) {
+    return res
+      .status(401)
+      .send("You need to login or register to view this page");
+  }
+
   const shortURL = req.params.shortURL;
   let longURL = req.body.updatedURL;
 
@@ -149,15 +192,26 @@ app.post("/urls/:shortURL", (req, res) => {
   res.redirect("/urls");
 });
 
-// -if a client makes a request at this specific path with there own value for (:shortURL)
-//  that value will be stored in a var called shortURL and be used in the template vars object
-//  so that it can rendered on our ejs file wherever it is called
+//---------------------------------------------------------------------------------------------------
+// -client request a given (:shortURL), it gets stored in a var called shortURL is used by templateVars
+//  to render the appropriate ejs file wherever it is called
 app.get("/urls/:shortURL", (req, res) => {
+  //***conditional asks if a given user should be able to SEE this info
+  if (!users[req.cookies["user_id"]]) {
+    return res
+      .status(401)
+      .send("You need to login or register to view this page");
+  }
+
   const shortURL = req.params.shortURL;
+  if (!urlDatabase[shortURL]) {
+    return res.status(404).send("The url you gave does not exsist");
+  }
+  const longURL = urlDatabase[shortURL].longURL;
 
   const templateVars = {
     shortURL: shortURL,
-    longURL: urlDatabase[shortURL][longURL],
+    longURL: longURL,
     username: users[req.cookies["user_id"]],
   };
 
@@ -165,8 +219,6 @@ app.get("/urls/:shortURL", (req, res) => {
 });
 
 //---------------------------------------------------------------------------------------------
-//REGISTER A NEW USER:
-
 //get route request that allows users to create a username and password
 app.get("/register", (req, res) => {
   const templateVars = {
@@ -176,6 +228,7 @@ app.get("/register", (req, res) => {
   res.render("register", templateVars);
 });
 
+//---------------------------------------------------------------------------------------------------
 // the POST endpoint for register
 app.post("/register", (req, res) => {
   const email = req.body.email;
@@ -210,9 +263,7 @@ app.post("/register", (req, res) => {
   res.redirect("/urls");
 });
 
-//----------------------------------------------------------------------------------------
-//LOGIN PAGE:
-
+//--------------------------------------------------------------------------------------------------
 // Get request endpoint for the login page
 app.get("/login", (req, res) => {
   const templateVars = {
@@ -226,6 +277,7 @@ app.get("/login", (req, res) => {
   }
 });
 
+//---------------------------------------------------------------------------------------------------
 // post route request makes it possible for users to create a username and connects a cookie to them
 app.post("/login", (req, res) => {
   let loginEmail = req.body.email;
