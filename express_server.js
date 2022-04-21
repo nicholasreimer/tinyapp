@@ -19,8 +19,14 @@ app.set("view engine", "ejs");
 
 //this object stores our URL values
 const urlDatabase = {
-  b2xVn2: "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com",
+  b6UTxQ: {
+    longURL: "https://www.tsn.ca",
+    userID: "aJ48lW",
+  },
+  i3BoGr: {
+    longURL: "https://www.google.ca",
+    userID: "aJ48lW",
+  },
 };
 
 const users = {
@@ -76,11 +82,19 @@ app.get("/urls/new", (req, res) => {
   const templateVars = {
     username: users[req.cookies["user_id"]],
   };
-  res.render("urls_new", templateVars);
+
+  if (users[req.cookies["user_id"]]) {
+    res.render("urls_new", templateVars);
+  } else {
+    res.redirect("/login");
+  }
 });
 
 //post route request gives clients a random string in place of ther inputed long url
 app.post("/urls", (req, res) => {
+  if (!users[req.cookies["user_id"]]) {
+    return res.status(401).send("You aint supposed to be here");
+  }
   let shortURL = generateRandomString();
   let longURL = req.body.longURL;
 
@@ -88,7 +102,7 @@ app.post("/urls", (req, res) => {
   if (!longURL.includes("http")) {
     longURL = "http://" + longURL;
   }
-  urlDatabase[shortURL] = longURL;
+  urlDatabase[shortURL] = { longURL, userID: req.cookies["user_id"] };
   res.redirect(`/urls/${shortURL}`); //redirect the client to the shortUrl page specific to there new shortURL
 });
 
@@ -96,8 +110,8 @@ app.post("/urls", (req, res) => {
 // stored inside the urlDatabase
 app.get("/u/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
-  const longURL = urlDatabase[shortURL];
-  //*** GET /u/:id - https://web.compass.lighthouselabs.ca/projects/tiny-app (implement: conditional that says if(not long url)
+  const longURL = urlDatabase[shortURL]["longURL"];
+
   if (!longURL) {
     return res.send("The given short-URL does not exsist");
   }
@@ -131,7 +145,7 @@ app.post("/urls/:shortURL", (req, res) => {
   if (!longURL.includes("http")) {
     longURL = "http://" + longURL;
   }
-  urlDatabase[shortURL] = longURL;
+  urlDatabase[shortURL] = { longURL, userID: req.cookies["user_id"] };
   res.redirect("/urls");
 });
 
@@ -143,7 +157,7 @@ app.get("/urls/:shortURL", (req, res) => {
 
   const templateVars = {
     shortURL: shortURL,
-    longURL: urlDatabase[shortURL],
+    longURL: urlDatabase[shortURL][longURL],
     username: users[req.cookies["user_id"]],
   };
 
@@ -205,7 +219,11 @@ app.get("/login", (req, res) => {
     username: users[req.cookies["user_id"]],
   };
 
-  res.render("login", templateVars);
+  if (!users[req.cookies["user_id"]]) {
+    res.render("login", templateVars);
+  } else {
+    res.redirect("/urls");
+  }
 });
 
 // post route request makes it possible for users to create a username and connects a cookie to them
