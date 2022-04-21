@@ -36,11 +36,23 @@ const users = {
 };
 
 //----------------------------------------------------------------------------------------
-//GLOBAL FUNCTION: implement a function that returns a string of 6 random alphanumeric characters:
+//GLOBAL FUNCTIONS: implement a function that returns a string of 6 random alphanumeric characters:
 function generateRandomString() {
   return Math.random().toString(20).substring(2, 6);
 }
-//code source: https://dev.to/oyetoket/fastest-way-to-generate-random-strings-in-javascript-2k5a
+
+function checkDuplicateEmail(email) {
+  // -cycle through the key:values within the users object and find
+  // the corresponding user for a given email
+
+  for (const userId in users) {
+    const user = users[userId];
+    if (user.email === email) {
+      return true;
+    }
+  }
+  return false;
+}
 
 //----------------------------------------------------------------------------------------
 //ROUTE REQUESTS:
@@ -153,15 +165,33 @@ app.get("/register", (req, res) => {
 app.post("/register", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
-  const id = generateRandomString();
 
+  //1. Conditional to check if email OR password is equal to a falsey value
+  if (!email || !password) {
+    return res.status(400).send("Website requires an email and a password");
+  }
+
+  //2. Conditional to check whether the email has been taken or not?
+  let result = checkDuplicateEmail(email);
+  if (result) {
+    return res
+      .status(400)
+      .send(
+        "Email has already been taken! Please try again with another email."
+      );
+  }
+  //Everything looks fine, we are ready to register the user.
+  const id = generateRandomString();
   users[id] = {
     id,
     email,
     password,
   };
 
+  // user is found in the users object give em a cookie
   res.cookie("user_id", id);
+
+  // user has cookie now, send them to the urls page
   res.redirect("/urls");
 });
 
