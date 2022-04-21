@@ -7,6 +7,7 @@ const PORT = 8080; // default port 8080
 const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
 const { response } = require("express");
+const bcrypt = require("bcryptjs");
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -67,7 +68,10 @@ function userLookup(loginEmail, password) {
   for (const userId in users) {
     const user = users[userId];
 
-    if (user.email === loginEmail && user.password === password) {
+    if (
+      user.email === loginEmail &&
+      bcrypt.compareSync(password, user.password)
+    ) {
       return user;
     }
   }
@@ -87,7 +91,8 @@ function urlsForUser(id) {
 }
 
 //---------------------------------------------------------------------------------------------------
-//SERVER ROUTE REQUESTS:
+//   SERVER ROUTE REQUESTS: (below)
+//---------------------------------------------------------------------------------------------------
 
 // -GET route request renders the urls_new.ejs template in the browser
 app.get("/urls/new", (req, res) => {
@@ -153,8 +158,8 @@ app.get("/urls", (req, res) => {
 
   res.render("urls_index", templateVars);
 });
-//-----------------------------------------------------------------------------------------------------------------------
 
+//-----------------------------------------------------------------------------------------------------------------------
 // -post route request that let a client delete a given shortURL that was previously created and
 //  refreshes the page via a redirect to show that it has been removed.
 app.post("/urls/:shortURL/delete", (req, res) => {
@@ -233,6 +238,7 @@ app.get("/register", (req, res) => {
 app.post("/register", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
+  const hashedPassword = bcrypt.hashSync(password);
 
   //1. Conditional to check if email OR password is equal to a falsey value
   if (!email || !password) {
@@ -253,8 +259,10 @@ app.post("/register", (req, res) => {
   users[id] = {
     id,
     email,
-    password,
+    password: hashedPassword,
   };
+
+  console.log("test:  ", users);
 
   // user is found in the users object give em a cookie
   res.cookie("user_id", id);
@@ -278,7 +286,7 @@ app.get("/login", (req, res) => {
 });
 
 //---------------------------------------------------------------------------------------------------
-// post route request makes it possible for users to create a username and connects a cookie to them
+// post route request makes it possible for users to login and connects a cookie to them
 app.post("/login", (req, res) => {
   let loginEmail = req.body.email;
   let loginPassword = req.body.password;
@@ -301,7 +309,7 @@ app.post("/login", (req, res) => {
   res.redirect("/urls");
 });
 
-//post route request that allows a use to logout, redirects them to the register page
+//post route request that allows a user to logout, redirects them to the register page
 app.post("/logout", (req, res) => {
   res.clearCookie("user_id");
   res.redirect("/register");
