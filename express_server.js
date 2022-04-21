@@ -6,6 +6,7 @@ const app = express();
 const PORT = 8080; // default port 8080
 const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
+const { response } = require("express");
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -35,12 +36,13 @@ const users = {
   },
 };
 
-//----------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------
 //GLOBAL FUNCTIONS: implement a function that returns a string of 6 random alphanumeric characters:
 function generateRandomString() {
   return Math.random().toString(20).substring(2, 6);
 }
 
+//related to registering a new user
 function checkDuplicateEmail(email) {
   // -cycle through the key:values within the users object and find
   // the corresponding user for a given email
@@ -54,8 +56,20 @@ function checkDuplicateEmail(email) {
   return false;
 }
 
-//----------------------------------------------------------------------------------------
-//ROUTE REQUESTS:
+//related to login page: look up a user by ther email
+function userLookup(loginEmail, password) {
+  for (const userId in users) {
+    const user = users[userId];
+
+    if (user.email === loginEmail && user.password === password) {
+      return user;
+    }
+  }
+  return false;
+}
+
+//---------------------------------------------------------------------------------------------------
+//SERVER ROUTE REQUESTS:
 
 // -GET route request renders the urls_new.ejs template in the browser
 app.get("/urls/new", (req, res) => {
@@ -136,24 +150,6 @@ app.get("/urls/:shortURL", (req, res) => {
   res.render("urls_show", templateVars);
 });
 
-//-------------------------------------------------------------------------------------------
-//CREATE A USERNAME, AND LOGOUT IN THE WEBSITE HEADER:
-
-// post route request makes it possible for users to create a username and connects a cookie to them
-app.post("/login", (req, res) => {
-  let loginEmail = req.body.email;
-  let loginPassword = req.body.password;
-
-  res.cookie("user_id", 1);
-  res.redirect("/urls");
-});
-
-//post route request that allows a use to logout, redirects them to the register page
-app.post("/logout", (req, res) => {
-  res.clearCookie("user_id");
-  res.redirect("/register");
-});
-
 //---------------------------------------------------------------------------------------------
 //REGISTER A NEW USER:
 
@@ -210,6 +206,35 @@ app.get("/login", (req, res) => {
   };
 
   res.render("login", templateVars);
+});
+
+// post route request makes it possible for users to create a username and connects a cookie to them
+app.post("/login", (req, res) => {
+  let loginEmail = req.body.email;
+  let loginPassword = req.body.password;
+
+  //1. Conditional to check if email OR password is equal to a falsey value
+  if (!loginEmail || !loginPassword) {
+    return res.status(403).send("Website requires an email and a password");
+  }
+
+  //2. Conditional to check whether the email and password (refered to as var user) is already present
+  let user = userLookup(loginEmail, loginPassword);
+  if (!user) {
+    return res
+      .status(403)
+      .send("Either the username or password was incorrect");
+  }
+
+  //if you pass the above conditionals then u get a cookie and redirected to the home page
+  res.cookie("user_id", user.id);
+  res.redirect("/urls");
+});
+
+//post route request that allows a use to logout, redirects them to the register page
+app.post("/logout", (req, res) => {
+  res.clearCookie("user_id");
+  res.redirect("/register");
 });
 
 //----------------------------------------------------------------------------------------
