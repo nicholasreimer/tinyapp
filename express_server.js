@@ -141,6 +141,9 @@ app.get("/urls/:shortURL", (req, res) => {
 
 // post route request makes it possible for users to create a username and connects a cookie to them
 app.post("/login", (req, res) => {
+  let loginEmail = req.body.email;
+  let loginPassword = req.body.password;
+
   res.cookie("user_id", 1);
   res.redirect("/urls");
 });
@@ -152,6 +155,8 @@ app.post("/logout", (req, res) => {
 });
 
 //---------------------------------------------------------------------------------------------
+//REGISTER A NEW USER:
+
 //get route request that allows users to create a username and password
 app.get("/register", (req, res) => {
   const templateVars = {
@@ -193,6 +198,18 @@ app.post("/register", (req, res) => {
 
   // user has cookie now, send them to the urls page
   res.redirect("/urls");
+});
+
+//----------------------------------------------------------------------------------------
+//LOGIN PAGE:
+
+// Get request endpoint for the login page
+app.get("/login", (req, res) => {
+  const templateVars = {
+    username: users[req.cookies["user_id"]],
+  };
+
+  res.render("login", templateVars);
 });
 
 //----------------------------------------------------------------------------------------

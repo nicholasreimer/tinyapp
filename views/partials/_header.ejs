@@ -20,16 +20,12 @@
     </div>
 
     <% if(!username) {%>
-    <form class="card-title" method="POST" action="/login">
-      <label for="username">Enter a Username:</label>
-      <input
-        class="form-control"
-        type="text"
-        name="username"
-        placeholder="username"
-        style="width: 300px; margin: 1em"
-      />
+    <form class="card-title" method="GET" action="/login">
       <button type="submit" class="btn btn-primary">Login</button>
+    </form>
+
+    <form class="card-title" method="GET" action="/register">
+      <button type="submit" class="btn btn-danger">Register</button>
     </form>
     <% } else { %>
     <form class="card-title" method="POST" action="/logout">
