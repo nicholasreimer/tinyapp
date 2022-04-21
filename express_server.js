@@ -4,13 +4,19 @@
 const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
-const cookieParser = require("cookie-parser");
+const cookieSession = require("cookie-session");
 const bodyParser = require("body-parser");
 const { response } = require("express");
 const bcrypt = require("bcryptjs");
 
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(cookieParser());
+
+app.use(
+  cookieSession({
+    name: "session",
+    keys: ["secretkey"],
+  })
+);
 
 //this code sets ejs as the template engine
 app.set("view engine", "ejs");
@@ -97,10 +103,10 @@ function urlsForUser(id) {
 // -GET route request renders the urls_new.ejs template in the browser
 app.get("/urls/new", (req, res) => {
   const templateVars = {
-    username: users[req.cookies["user_id"]],
+    username: users[req.session["user_id"]],
   };
 
-  if (users[req.cookies["user_id"]]) {
+  if (users[req.session["user_id"]]) {
     res.render("urls_new", templateVars);
   } else {
     res.redirect("/login");
@@ -110,7 +116,7 @@ app.get("/urls/new", (req, res) => {
 //---------------------------------------------------------------------------------------------------
 //post route request gives clients a random string in place of ther inputed long url
 app.post("/urls", (req, res) => {
-  if (!users[req.cookies["user_id"]]) {
+  if (!users[req.session["user_id"]]) {
     return res.status(401).send("You aint supposed to be here");
   }
   let shortURL = generateRandomString();
@@ -120,7 +126,7 @@ app.post("/urls", (req, res) => {
   if (!longURL.includes("http")) {
     longURL = "http://" + longURL;
   }
-  urlDatabase[shortURL] = { longURL, userID: req.cookies["user_id"] };
+  urlDatabase[shortURL] = { longURL, userID: req.session["user_id"] };
   res.redirect(`/urls/${shortURL}`); //redirect the client to the shortUrl page specific to there new shortURL
 });
 
@@ -141,7 +147,7 @@ app.get("/u/:shortURL", (req, res) => {
 //renders a page of all the urls stored currently in urlDatabase is certain conditions are met
 app.get("/urls", (req, res) => {
   //if user is not logged in give them an error, do u exsist and do u hav an approprate cookie
-  if (!users[req.cookies["user_id"]]) {
+  if (!users[req.session["user_id"]]) {
     return res
       .status(401)
       .send("You need to login or register to view this page");
@@ -149,11 +155,11 @@ app.get("/urls", (req, res) => {
 
   //function returns an object containing urlDatabases corresponding object if userID is equal to
   //the id of the currently logged-in user.
-  let output = urlsForUser(req.cookies["user_id"]);
+  let output = urlsForUser(req.session["user_id"]);
 
   const templateVars = {
     urls: output,
-    username: users[req.cookies["user_id"]],
+    username: users[req.session["user_id"]],
   };
 
   res.render("urls_index", templateVars);
@@ -164,7 +170,7 @@ app.get("/urls", (req, res) => {
 //  refreshes the page via a redirect to show that it has been removed.
 app.post("/urls/:shortURL/delete", (req, res) => {
   //***conditional asks if a given user should be able to DELETE this info
-  if (!users[req.cookies["user_id"]]) {
+  if (!users[req.session["user_id"]]) {
     return res
       .status(401)
       .send("You need to login or register to view this page");
@@ -180,7 +186,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 //  by accesssing its shortURL key and refreshes the page via a redirect.
 app.post("/urls/:shortURL", (req, res) => {
   //***conditional asks if a given user should be able to CHANGE this info
-  if (!users[req.cookies["user_id"]]) {
+  if (!users[req.session["user_id"]]) {
     return res
       .status(401)
       .send("You need to login or register to view this page");
@@ -193,7 +199,7 @@ app.post("/urls/:shortURL", (req, res) => {
   if (!longURL.includes("http")) {
     longURL = "http://" + longURL;
   }
-  urlDatabase[shortURL] = { longURL, userID: req.cookies["user_id"] };
+  urlDatabase[shortURL] = { longURL, userID: req.session["user_id"] };
   res.redirect("/urls");
 });
 
@@ -201,8 +207,8 @@ app.post("/urls/:shortURL", (req, res) => {
 // -client request a given (:shortURL), it gets stored in a var called shortURL is used by templateVars
 //  to render the appropriate ejs file wherever it is called
 app.get("/urls/:shortURL", (req, res) => {
-  //***conditional asks if a given user should be able to SEE this info
-  if (!users[req.cookies["user_id"]]) {
+  //conditional asks if a given user should be able to SEE this info
+  if (!users[req.session["user_id"]]) {
     return res
       .status(401)
       .send("You need to login or register to view this page");
@@ -217,7 +223,7 @@ app.get("/urls/:shortURL", (req, res) => {
   const templateVars = {
     shortURL: shortURL,
     longURL: longURL,
-    username: users[req.cookies["user_id"]],
+    username: users[req.session["user_id"]],
   };
 
   res.render("urls_show", templateVars);
@@ -227,7 +233,7 @@ app.get("/urls/:shortURL", (req, res) => {
 //get route request that allows users to create a username and password
 app.get("/register", (req, res) => {
   const templateVars = {
-    username: users[req.cookies["user_id"]],
+    username: users[req.session["user_id"]],
   };
 
   res.render("register", templateVars);
@@ -262,10 +268,9 @@ app.post("/register", (req, res) => {
     password: hashedPassword,
   };
 
-  console.log("test:  ", users);
-
   // user is found in the users object give em a cookie
-  res.cookie("user_id", id);
+  //res.cookie("user_id", id);
+  req.session.user_id = id;
 
   // user has cookie now, send them to the urls page
   res.redirect("/urls");
@@ -275,10 +280,10 @@ app.post("/register", (req, res) => {
 // Get request endpoint for the login page
 app.get("/login", (req, res) => {
   const templateVars = {
-    username: users[req.cookies["user_id"]],
+    username: users[req.session["user_id"]],
   };
 
-  if (!users[req.cookies["user_id"]]) {
+  if (!users[req.session["user_id"]]) {
     res.render("login", templateVars);
   } else {
     res.redirect("/urls");
@@ -305,13 +310,13 @@ app.post("/login", (req, res) => {
   }
 
   //if you pass the above conditionals then u get a cookie and redirected to the home page
-  res.cookie("user_id", user.id);
+  req.session.user_id = user.id;
   res.redirect("/urls");
 });
 
 //post route request that allows a user to logout, redirects them to the register page
 app.post("/logout", (req, res) => {
-  res.clearCookie("user_id");
+  req.session = null;
   res.redirect("/register");
 });
 
