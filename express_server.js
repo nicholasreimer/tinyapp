@@ -117,11 +117,16 @@ app.post("/urls", (req, res) => {
 //GET: /U/:shortURL - redirects client to the newly generated shortURL for a clients inputed longURL
 app.get("/u/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
-  const longURL = urlDatabase[shortURL]["longURL"];
+  let longURL;
+
+  if (urlDatabase[shortURL]) {
+    longURL = urlDatabase[shortURL]["longURL"];
+  }
 
   if (!longURL) {
     return res.send("The given short-URL does not exsist");
   }
+
   res.redirect(longURL);
 });
 
@@ -190,7 +195,13 @@ app.get("/urls/:shortURL", (req, res) => {
   if (!urlDatabase[shortURL]) {
     return res.status(404).send("The url you gave does not exsist");
   }
+
   const longURL = urlDatabase[shortURL].longURL;
+  if (!urlDatabase[shortURL].userID == req.session["user_id"]) {
+    return res
+      .status(401)
+      .send("You need to login or register to view this page");
+  }
 
   const templateVars = {
     shortURL: shortURL,
