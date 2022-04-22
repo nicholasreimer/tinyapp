@@ -8,6 +8,7 @@ const cookieSession = require("cookie-session");
 const bodyParser = require("body-parser");
 const { response } = require("express");
 const bcrypt = require("bcryptjs");
+const { getUserByEmail } = require("./helpers");
 
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -51,6 +52,7 @@ const users = {
 
 //---------------------------------------------------------------------------------------------------
 //GLOBAL FUNCTIONS: implement a function that returns a string of 6 random alphanumeric characters:
+
 function generateRandomString() {
   return Math.random().toString(20).substring(2, 6);
 }
@@ -296,14 +298,21 @@ app.post("/login", (req, res) => {
   let loginEmail = req.body.email;
   let loginPassword = req.body.password;
 
-  //1. Conditional to check if email OR password is equal to a falsey value
+  //Conditional to check if email OR password is equal to a falsey value
   if (!loginEmail || !loginPassword) {
     return res.status(403).send("Website requires an email and a password");
   }
 
-  //2. Conditional to check whether the email and password (refered to as var user) is already present
-  let user = userLookup(loginEmail, loginPassword);
+  //Conditional to check whether the email and password (refered to as var user) is already present
+  let user = getUserByEmail(loginEmail, users);
   if (!user) {
+    return res
+      .status(403)
+      .send("Either the username or password was incorrect");
+  }
+
+  //Conditional checks password
+  if (!bcrypt.compareSync(loginPassword, user.password)) {
     return res
       .status(403)
       .send("Either the username or password was incorrect");
@@ -314,6 +323,7 @@ app.post("/login", (req, res) => {
   res.redirect("/urls");
 });
 
+//------------------------------------------------------------------------------------------
 //post route request that allows a user to logout, redirects them to the register page
 app.post("/logout", (req, res) => {
   req.session = null;
