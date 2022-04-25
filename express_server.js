@@ -158,7 +158,15 @@ app.post("/urls/:shortURL/delete", (req, res) => {
       .status(401)
       .send("You need to login or register to view this page");
   }
+
   const shortURL = req.params.shortURL;
+
+  if (req.session["user_id"] !== urlDatabase[shortURL].userID) {
+    return res
+      .status(401)
+      .send("You dont have the appropriate access to view this information");
+  }
+
   delete urlDatabase[shortURL];
   res.redirect("/urls");
 });
@@ -166,7 +174,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 //---------------------------------------------------------------------------------------------------
 //POST: /URLS/:shortURL - allows clients to edit the value of an exsisiting longURL and refreshes the page via a redirect.
 app.post("/urls/:shortURL", (req, res) => {
-  if (!users[req.session["user_id"]]) {
+  if (!req.session["user_id"]) {
     return res
       .status(401)
       .send("You need to login or register to view this page");
@@ -174,18 +182,24 @@ app.post("/urls/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
   let longURL = req.body.updatedURL;
 
+  if (req.session["user_id"] !== urlDatabase[shortURL].userID) {
+    return res
+      .status(401)
+      .send("You dont have the appropriate access to view this information");
+  }
+
   // in the case of a missing http input for longURL this code adds it to the clients input to make it whole.
   if (!longURL.includes("http")) {
     longURL = "http://" + longURL;
   }
-  urlDatabase[shortURL] = { longURL, userID: req.session["user_id"] };
+  urlDatabase[shortURL].longURL = longURL;
   res.redirect("/urls");
 });
 
 //----------------------------------------------------------------------------------------------------------------
 //GET: /URLS/:shortURL - conditionals check if client has permission to visit a given shortURL
 app.get("/urls/:shortURL", (req, res) => {
-  if (!users[req.session["user_id"]]) {
+  if (!req.session["user_id"]) {
     return res
       .status(401)
       .send("You need to login or register to view this page");
@@ -197,16 +211,18 @@ app.get("/urls/:shortURL", (req, res) => {
   }
 
   const longURL = urlDatabase[shortURL].longURL;
-  if (!urlDatabase[shortURL].userID == req.session["user_id"]) {
+  if (req.session["user_id"] !== urlDatabase[shortURL].userID) {
     return res
       .status(401)
-      .send("You need to login or register to view this page");
+      .send("You dont have the appropriate access to view this information");
   }
 
+  const username = users[req.session["user_id"]];
+
   const templateVars = {
+    username,
     shortURL: shortURL,
     longURL: longURL,
-    username: users[req.session["user_id"]],
   };
 
   res.render("urls_show", templateVars);
